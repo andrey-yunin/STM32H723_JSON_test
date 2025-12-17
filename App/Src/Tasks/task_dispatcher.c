@@ -41,6 +41,9 @@ void app_start_task_dispatcher(void *argument)
 
 	for(;;)
 		{
+		// ОЧИСТИТЬ БУФЕР <<<
+		memset(rx_usb_buffer, 0, sizeof(rx_usb_buffer));
+
 		if (xQueueReceive(usb_rx_queue_handle, (void *)rx_usb_buffer, portMAX_DELAY) == pdPASS)
 			{
 			// --- Начало измерения времени ---
@@ -55,6 +58,7 @@ void app_start_task_dispatcher(void *argument)
 		    	Dispatcher_SendUsbResponse("{\"status\":\"ERROR\", \"message\":\"Invalid JSON: root is not an object\"}");
 		    	continue;
 		    	}
+
 		    // 2. Извлекаем основные ключи
 		    char command_name[CMD_BUFFER_LEN] = {0};
 		    char request_id[REQ_ID_BUFFER_LEN] = {0};
