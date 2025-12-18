@@ -75,7 +75,7 @@ const osThreadAttr_t task_usb_handle_attributes = {
 osThreadId_t task_dispatcherHandle;
 const osThreadAttr_t task_dispatcher_attributes = {
   .name = "task_dispatcher",
-  .stack_size = 512 * 4,
+  .stack_size = 2048 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal,
 };
 /* Definitions for task_watchdog */
@@ -173,10 +173,14 @@ int main(void)
   MX_FDCAN1_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
+
   HAL_TIM_Base_Start(&htim3);
 
   /* init code for USB_DEVICE */
-  MX_USB_DEVICE_Init();
+  //MX_USB_DEVICE_Init();
+
+  /* init code for USB_DEVICE */
+
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -214,6 +218,21 @@ int main(void)
 // Важно: всегда проверяйте, что очереди успешно создались!
 // Если какая-либо очередь не создалась (handle == NULL),
 // это указывает на нехватку памяти FreeRTOS (heap).
+
+  /*
+
+  if (can_rx_queue_handle == NULL      ||
+		  can_tx_queue_handle == NULL  ||
+		  usb_rx_queue_handle == NULL  ||
+		  usb_tx_queue_handle == NULL)
+		  {
+	  Error_Handler();
+	  }
+
+	  */
+
+
+
 
 // Вызываем функцию проверки всех очередей
  //app_init_checker_verifyqueues();
@@ -440,7 +459,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  //HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : LED_Pin */
   GPIO_InitStruct.Pin = LED_Pin;
@@ -468,9 +487,9 @@ static void MX_GPIO_Init(void)
 void start_task_can_handler(void *argument)
 {
   /* init code for USB_DEVICE */
-
+  //MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 5 */
-app_start_task_can_handler(argument);
+	app_start_task_can_handler(argument);
   /* Infinite loop */
   for(;;)
   {
@@ -489,6 +508,7 @@ app_start_task_can_handler(argument);
 void start_task_usb_handler(void *argument)
 {
   /* USER CODE BEGIN start_task_usb_handler */
+
   app_start_task_usb_handler(argument);
 
   /* Infinite loop */

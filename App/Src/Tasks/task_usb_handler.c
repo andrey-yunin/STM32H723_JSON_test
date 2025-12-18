@@ -10,19 +10,32 @@
 #include "shared_resources.h"
 #include "app_config.h"
 #include "usbd_cdc_if.h" // Для функции CDC_Transmit_HS
+#include "usb_device.h" // << ДОБАВЬТЕ ЭТУ СТРОКУ
 #include "string.h"      // Для strlen
+#include "main.h"
 
 void app_start_task_usb_handler(void *argument)
 {
 	char tx_buffer[APP_USB_RESP_MAX_LEN];
 
+	// 1. Инициализируем USB внутри задачи
+	MX_USB_DEVICE_Init();
+
 	for(;;)
 		{
+		// Просто мигаем светодиодом раз в секунду, чтобы показать, что задача жива
+		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+		osDelay(1000);
+
+
 		// 1. Ждем сообщение из очереди на отправку
+
+
 
 		if (xQueueReceive(usb_tx_queue_handle, (void *)tx_buffer, portMAX_DELAY) == pdPASS)
 			{
-			// 2.  Сообщение получено в tx_buffer.
+
+		// 2.  Сообщение получено в tx_buffer.
 			// Эта функция будет "спать", пока семафор не будет поднят в CDC_TransmitCplt_HS.
 
 		//	osSemaphoreAcquire(usb_tx_semHandle, osWaitForever);
@@ -48,9 +61,7 @@ void app_start_task_usb_handler(void *argument)
 				osDelay(100);
 			}
 	      }
-
     }
-
 }
 
 

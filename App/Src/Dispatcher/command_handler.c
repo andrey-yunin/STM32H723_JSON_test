@@ -47,44 +47,41 @@ void CommandHandler_Execute(const char* command_name, const char* request_id, js
 			dispatch_table[i].handler_func(request_id, params_token, json_string, num_tokens, parsing_time_us);
 			return; // Выходим из функции, так как команда обработана
 			}
-}
+		}
+	// Если мы дошли сюда, значит команда не найдена в таблице
+	char error_response[128];
+	snprintf(error_response, sizeof(error_response),
+			"{\"status\":\"ERROR\", \"response_to\":\"%s\", \"message\":\"Unknown command: %s\", \"parsing_time_us\":%lu}",
+			request_id ? request_id : "unknown", command_name, (unsigned long)parsing_time_us);
 
-// Если мы дошли сюда, значит команда не найдена в таблице
-char error_response[128];
-snprintf(error_response, sizeof(error_response),
-		"{\"status\":\"ERROR\", \"response_to\":\"%s\", \"message\":\"Unknown command: %s\", \"parsing_time_us\":%lu}",
-		request_id ? request_id : "unknown", command_name, (unsigned long)parsing_time_us);
-Dispatcher_SendUsbResponse(error_response);
+	Dispatcher_SendUsbResponse(error_response);
 }
-
-// --- 4. Создаем "заглушки" для функций-обработчиков ---
 
 /**
  * @brief Обрабатывает простую команду PING
  */
-/*
- static void handle_ping(const char* request_id, jsmntok_t *params_token, const char* json_string,
-		 int num_tokens, uint32_t parsing_time_us)
- {
-	 // >>> ТРИ МИГА: Обработчик PING вызван <<<
-	 HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-	 osDelay(500); HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-	 osDelay(500); HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-	 osDelay(500); HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-	 osDelay(500); HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-	 osDelay(500); HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-	 // ...
 
-	 char response[128];
-	 snprintf(response, sizeof(response),
-			 "{\"status\":\"OK\", \"response_to\":\"%s\", \"message\":\"PONG\", \"parsing_time_us\":%lu}",
-			  request_id ? request_id : "unknown", (unsigned long)parsing_time_us);
+static void handle_ping(const char* request_id, jsmntok_t *params_token, const char* json_string,
+		int num_tokens, uint32_t total_processing_time_us)
+{
+	char response[192];
+	snprintf(response, sizeof(response),
+			"{\"status\":\"OK\", \"response_to\":\"%s\", \"message\":\"PONG\", \"total_processing_time_us\":%lu}",
+			request_id ? request_id : "unknown", (unsigned long)total_processing_time_us);
 
+	Dispatcher_SendUsbResponse(response); // << ВОЗВРАЩАЕМ ВЫЗОВ
+	}
 
-	 Dispatcher_SendUsbResponse(response);
+static void handle_execute_job(const char* request_id, jsmntok_t *params_token, const char* json_string,
+		int num_tokens, uint32_t total_processing_time_us)
+{
+	char response[256];
+	snprintf(response, sizeof(response),
+			"{\"status\":\"OK\", \"response_to\":\"%s\", \"message\":\"Job received, parsing not yet implemented\",\"total_processing_time_us\":%lu}",
+			request_id ? request_id : "unknown", (unsigned long)total_processing_time_us);
+
+	Dispatcher_SendUsbResponse(response); // << ВОЗВРАЩАЕМ ВЫЗОВ
 }
-
-*/
 
  /**
   * @brief Обрабатывает сложную команду EXECUTE_JOB
@@ -117,7 +114,11 @@ static void handle_execute_job(const char* request_id, jsmntok_t *params_token, 
 
 }
 
-*/
+
+
+//КОД ДЛЯ ПРЯМОЙ ОТПРАВКИ СООБЩЕНИЙ, МИНУЯ ОЧЕРЕДИ
+ *
+ *
 
 
 // --- ИЗМЕНЕННЫЕ ФУНКЦИИ-ОБРАБОТЧИКИ ---
@@ -151,7 +152,7 @@ static void handle_execute_job(const char* request_id, jsmntok_t *params_token, 
 }
 
 
-
+*/
 
 
 

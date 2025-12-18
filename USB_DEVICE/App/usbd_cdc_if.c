@@ -275,6 +275,15 @@ static int8_t CDC_Control_HS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_HS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 11 */
+
+	// >>> НАЧАЛО НОВОГО ОТЛАДОЧНОГО КОДА <<<
+	// Два быстрых мига, чтобы показать, что мы вошли в обработчик прерывания
+	//HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+	//HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+
+	// <<< КОНЕЦ НОВОГО ОТЛАДОЧНОГО КОДА >>>
+
+
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
    // Process each received character one by one

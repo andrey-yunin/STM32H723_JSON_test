@@ -46,6 +46,16 @@ void app_start_task_dispatcher(void *argument)
 
 		if (xQueueReceive(usb_rx_queue_handle, (void *)rx_usb_buffer, portMAX_DELAY) == pdPASS)
 			{
+			// >>> НАЧАЛО НОВОГО ОТЛАДОЧНОГО КОДА <<<
+			// Три быстрых мига: команда успешно извлечена из очереди
+			for (int i=0; i<6; i++) {
+				HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+				osDelay(50);
+				}
+			// <<< КОНЕЦ НОВОГО ОТЛАДОЧНОГО КОДА >>>
+
+
+
 			// --- Начало измерения времени ---
 			__HAL_TIM_SET_COUNTER(&htim3, 0);
 			uint32_t start_time = __HAL_TIM_GET_COUNTER(&htim3);

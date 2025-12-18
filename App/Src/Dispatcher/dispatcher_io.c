@@ -10,6 +10,7 @@
 #include "app_config.h"       // Для APP_USB_RESP_MAX_LEN
 #include <string.h>           // Для strncpy
 #include "cmsis_os.h"         // Для pdMS_TO_TICKS
+#include <main.h>
 
 /**
 * @brief Отправляет строку-ответ в очередь на передачу по USB.
@@ -31,5 +32,17 @@ void Dispatcher_SendUsbResponse(const char* message)
      // Отправляем скопированное сообщение в очередь на передачу по USB.
      // Если очередь полна, ждем максимум 100 мс. Это предотвращает
      // блокировку всей задачи диспетчера, если USB-передача застряла.
-     xQueueSend(usb_tx_queue_handle, (void *)response_buffer, pdMS_TO_TICKS(100));
+     //xQueueSend(usb_tx_queue_handle, (void *)response_buffer, pdMS_TO_TICKS(100));
+
+     // Если сообщение было успешно помещено в очередь
+     if (xQueueSend(usb_tx_queue_handle, (void *)response_buffer, pdMS_TO_TICKS(100)) == pdPASS)
+    	 {
+    	 // >>> НАЧАЛО НОВОГО ОТЛАДОЧНОГО КОДА <<<
+         // Четыре быстрых мига: ответ помещен в очередь usb_tx_queue
+         for (int i=0; i<8; i++) {
+        	 HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+        	 osDelay(50);
+        	 }
+         // <<< КОНЕЦ НОВОГО ОТЛАДОЧНОГО КОДА >>>
+         }
 }
