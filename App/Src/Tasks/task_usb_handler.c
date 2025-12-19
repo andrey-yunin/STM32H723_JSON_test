@@ -23,13 +23,8 @@ void app_start_task_usb_handler(void *argument)
 
 	for(;;)
 		{
-		// Просто мигаем светодиодом раз в секунду, чтобы показать, что задача жива
-		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-		osDelay(1000);
-
 
 		// 1. Ждем сообщение из очереди на отправку
-
 
 
 		if (xQueueReceive(usb_tx_queue_handle, (void *)tx_buffer, portMAX_DELAY) == pdPASS)

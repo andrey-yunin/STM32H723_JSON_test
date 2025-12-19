@@ -10,24 +10,25 @@
 
 #include "jsmn.h" // Для типа jsmntok_t
 #include <stdint.h>
+#include <stdbool.h>
 
-// Определяем тип для указателя на функцию-обработчик.
-// Все наши обработчики будут принимать одни и те же аргументы:
-// - request_id: ID запроса от UI
-// - params_token: Указатель на токен, с которого начинаются параметры в JSON
-// - json_string: Указатель на всю JSON-строку
-// - num_tokens: Общее количество токенов
-typedef void (*CommandHandler_t)(const char* request_id, jsmntok_t *params_token, const char* json_string, int num_tokens, uint32_t parsing_time_us);
+
+
 
 /**
- * @brief Главная функция, которая находит и выполняет команду.
- *
- * @param command_name Имя команды, полученное из JSON.
- * @param request_id ID запроса, полученный из JSON.
- * @param params_token Указатель на токен параметров.
- * @param json_string Указатель на всю JSON-строку.
- * @param num_tokens Общее количество токенов.
+ * @brief Определяем универсальный тип для указателя на функцию-обработчик.
+ * @param data Указатель на данные, специфичные для команды (например, на Job_t), или NULL.
+ * @param start_time Время начала обработки (для измерения производительности).
  */
-void CommandHandler_Execute(const char* command_name, const char* request_id, jsmntok_t *params_token, const char* json_string, int num_tokens, uint32_t parsing_time_us);
+
+typedef void (*CommandHandler_t)(void *data, uint32_t start_time);
+/**
+ * @brief Главная функция, которая находит и выполняет команду.
+ * @param command_name Имя команды, полученное из JSON.
+ * @param data Указатель на данные для команды.
+ * @param start_time Время начала обработки.
+ */
+void CommandHandler_Execute(const char* command_name, void* data, uint32_t start_time);
+
 
 #endif /* INC_DISPATCHER_COMMAND_HANDLER_H_ */

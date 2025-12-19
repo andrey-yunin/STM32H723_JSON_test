@@ -6,154 +6,111 @@
  */
 
 
-#include <main.h>
-#include "cmsis_os.h"
 #include "Dispatcher/command_handler.h"
-#include "Dispatcher/dispatcher_io.h" // Для отправки ответов по USB
+#include "Dispatcher/dispatcher_io.h"
+#include "job_format.h"       // Для структуры Job_t
+#include "can_message.h"      // Для CanMessage_t
+#include "recipe_store.h"     // Для ActionType_t
+#include "shared_resources.h" // Для can_tx_queue_handle
+#include "main.h"             // Для HAL_... и FDCAN_...
 #include <string.h>
 #include <stdio.h>
-#include "usbd_cdc_if.h" // Для функции CDC_Transmit_HS
 
-// --- Структура для таблицы диспетчеризации ---
+
+// --- Внешние переменные ---
+extern TIM_HandleTypeDef htim3;
+
+
+// --- Определения обработчиков и таблицы ---
+typedef void (*CommandHandler_t)(void *data, uint32_t start_time); // Обновленный тип
+static void handle_ping(void *data, uint32_t start_time);
+static void handle_execute_job(void *data, uint32_t start_time);
+
 typedef struct {
 	const char* command_name;
 	CommandHandler_t handler_func;
 	} CommandDispatch_t;
 
+	static const CommandDispatch_t dispatch_table[] = {
+			{ "PING",        (CommandHandler_t)handle_ping },
+			{ "EXECUTE_JOB", (CommandHandler_t)handle_execute_job }
+			};
 
-// --- 1. Объявляем наши будущие функции-обработчики ---
-// Каждый для своей команды.
-static void handle_ping(const char* request_id, jsmntok_t *params_token, const char* json_string,
-		int num_tokens, uint32_t parsing_time_us);
-static void handle_execute_job(const char* request_id, jsmntok_t *params_token, const char* json_string,
-		int num_tokens, uint32_t parsing_time_us);
-
-
-// --- 2. Создаем саму таблицу-справочник ---
-static const CommandDispatch_t dispatch_table[] = {
-		{ "PING",        &handle_ping },
-		{ "EXECUTE_JOB", &handle_execute_job }
-		// Сюда мы будем добавлять новые команды
-		};
-
-// --- 3. Реализуем главную функцию-диспетчер ---
-void CommandHandler_Execute(const char* command_name, const char* request_id, jsmntok_t *params_token, const char* json_string,
-		int num_tokens, uint32_t parsing_time_us)
-{
-	// Ищем команду в нашей таблице
-	for (size_t i = 0; i < sizeof(dispatch_table) / sizeof(dispatch_table[0]); i++) {
-		if (strcmp(command_name, dispatch_table[i].command_name) == 0) {
-			// Команда найдена! Вызываем соответствующий обработчик по указателю.
-			dispatch_table[i].handler_func(request_id, params_token, json_string, num_tokens, parsing_time_us);
-			return; // Выходим из функции, так как команда обработана
+	// --- CommandHandler_Execute (обновленный) ---
+	void CommandHandler_Execute(const char* command_name, void* data, uint32_t start_time)
+	{
+		for (size_t i = 0; i < sizeof(dispatch_table) / sizeof(dispatch_table[0]); i++) {
+			if (strcmp(command_name, dispatch_table[i].command_name) == 0) {
+				dispatch_table[i].handler_func(data, start_time);
+				return;
+				}
 			}
+		// Обработка неизвестной команды (если нужно)
 		}
-	// Если мы дошли сюда, значит команда не найдена в таблице
-	char error_response[128];
-	snprintf(error_response, sizeof(error_response),
-			"{\"status\":\"ERROR\", \"response_to\":\"%s\", \"message\":\"Unknown command: %s\", \"parsing_time_us\":%lu}",
-			request_id ? request_id : "unknown", command_name, (unsigned long)parsing_time_us);
-
-	Dispatcher_SendUsbResponse(error_response);
-}
-
-/**
- * @brief Обрабатывает простую команду PING
- */
-
-static void handle_ping(const char* request_id, jsmntok_t *params_token, const char* json_string,
-		int num_tokens, uint32_t total_processing_time_us)
-{
-	char response[192];
-	snprintf(response, sizeof(response),
-			"{\"status\":\"OK\", \"response_to\":\"%s\", \"message\":\"PONG\", \"total_processing_time_us\":%lu}",
-			request_id ? request_id : "unknown", (unsigned long)total_processing_time_us);
-
-	Dispatcher_SendUsbResponse(response); // << ВОЗВРАЩАЕМ ВЫЗОВ
-	}
-
-static void handle_execute_job(const char* request_id, jsmntok_t *params_token, const char* json_string,
-		int num_tokens, uint32_t total_processing_time_us)
-{
-	char response[256];
-	snprintf(response, sizeof(response),
-			"{\"status\":\"OK\", \"response_to\":\"%s\", \"message\":\"Job received, parsing not yet implemented\",\"total_processing_time_us\":%lu}",
-			request_id ? request_id : "unknown", (unsigned long)total_processing_time_us);
-
-	Dispatcher_SendUsbResponse(response); // << ВОЗВРАЩАЕМ ВЫЗОВ
-}
-
- /**
-  * @brief Обрабатывает сложную команду EXECUTE_JOB
-  */
-
-/*
-static void handle_execute_job(const char* request_id, jsmntok_t *params_token, const char* json_string,
-		 int num_tokens, uint32_t parsing_time_us)
- {
-	 // >>> ЧЕТЫРЕ МИГА: Обработчик EXECUTE_JOB вызван <<<
-		 HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-		 osDelay(500); HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-		 osDelay(500); HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-		 osDelay(500); HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-		 osDelay(500); HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-		 osDelay(500); HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-		 osDelay(500); HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-		 osDelay(500); HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-		 osDelay(500);
-		 // ...
-	 // TODO: Здесь будет сложная логика парсинга параметров из 'params_token'
-	 // и заполнения структуры Job_t.
-	 // А пока просто отправим подтверждение, что задание получено.
-	 char response[128];
-	 snprintf(response, sizeof(response),
-			 "{\"status\":\"OK\", \"response_to\":\"%s\", \"message\":\"Job received, parsing not yet implemented\","
-			 "\"parsing_time_us\":%lu}", request_id ? request_id : "unknown", (unsigned long)parsing_time_us);
-
-	 Dispatcher_SendUsbResponse(response);
-
-}
-
-
-
-//КОД ДЛЯ ПРЯМОЙ ОТПРАВКИ СООБЩЕНИЙ, МИНУЯ ОЧЕРЕДИ
- *
- *
-
-
-// --- ИЗМЕНЕННЫЕ ФУНКЦИИ-ОБРАБОТЧИКИ ---
-
-static void handle_ping(const char* request_id, jsmntok_t *params_token, const char* json_string,
-		int num_tokens, uint32_t total_processing_time_us)
-{
-	char response[192];
-	snprintf(response, sizeof(response),
-			"{\"status\":\"OK\", \"response_to\":\"%s\", \"message\":\"PONG\", \"total_processing_time_us\":%lu}\r\n", // Добавля  \r\n сразу
-			request_id ? request_id : "unknown", (unsigned long)total_processing_time_us);
-
-	// ВЫЗЫВАЕМ ФИЗИЧЕСКУЮ ОТПРАВКУ НАПРЯМУЮ, В ОБХОД ОЧЕРЕДИ
-	while (CDC_Transmit_HS((uint8_t*)response, strlen(response)) == USBD_BUSY) {
-		osDelay(1);
+	// --- Обработчики команд (обновленные) ---
+	static void handle_ping(void *data, uint32_t start_time)
+	{
+		char response[128];
+		uint32_t final_time = __HAL_TIM_GET_COUNTER(&htim3) - start_time;
+		snprintf(response, sizeof(response),
+				"{\"status\":\"OK\", \"message\":\"PONG\", \"total_time_us\":%lu}",
+				(unsigned long)final_time);
+		Dispatcher_SendUsbResponse(response);
 		}
-	}
+	static void handle_execute_job(void *data, uint32_t start_time)
+	{
+		if (data == NULL) {
+			Dispatcher_SendUsbResponse("{\"status\":\"ERROR\", \"message\":\"Job data is NULL\"}");
+			return;
+			}
+		Job_t* job = (Job_t*)data;
+		bool can_sent = false;
 
-static void handle_execute_job(const char* request_id, jsmntok_t *params_token, const char* json_string,
-		int num_tokens, uint32_t total_processing_time_us)
-{
-	char response[256];
-	snprintf(response, sizeof(response),
-			"{\"status\":\"OK\", \"response_to\":\"%s\", \"message\":\"Job received, direct transmit test\",\"total_processing_time_us\":%lu}\r\n", // Добавляем \r\n сразу
-             request_id ? request_id : "unknown", (unsigned long)total_processing_time_us);
+		// Проходим по шагам задания
+		for (int i = 0; i < job->num_steps; i++) {
+			JobStep_t* step = &job->steps[i];
+			// Используем switch для обработки разных действий
+			switch (step->action) {
+			   case ACTION_SET_PUMP_STATE:
+				   {
+					   // Собираем CAN-сообщение для насоса
+					   CanMessage_t can_msg;
+					   // 1. Заголовок
 
-	// ВЫЗЫВАЕМ ФИЗИЧЕСКУЮ ОТПРАВКУ НАПРЯМУЮ, В ОБХОД ОЧЕРЕДИ
-	while (CDC_Transmit_HS((uint8_t*)response, strlen(response)) == USBD_BUSY) {
-		osDelay(1);
+					   can_msg.Header.IdType = FDCAN_STANDARD_ID;
+					   // ID исполнителя насосов = 1 (согласно нашей договоренности)
+					   // ID насоса берем из параметров шага
+					   can_msg.Header.Identifier = 0x100 | (1 << 4) | (step->params.pump.pump_id & 0x07);
+					   can_msg.Header.TxFrameType = FDCAN_DATA_FRAME;
+					   can_msg.Header.DataLength = FDCAN_DLC_BYTES_2; // Команда (1 байт) + Состояние (1 байт)
+					   // 2. Данные
+					   // ВАЖНО: Нам нужен реальный ID команды из протокола CAN.
+					   // Пока что используем заглушку 0x10.
+					   can_msg.Data[0] = ACTION_SET_PUMP_STATE; // Используем ID из ActionType_t
+					   can_msg.Data[1] = step->params.pump.state; // 1 (ON) или 0 (OFF)
+					   // 3. Отправляем в CAN очередь
+					   if (xQueueSend(can_tx_queue_handle, &can_msg, pdMS_TO_TICKS(100)) == pdPASS) {
+						   can_sent = true;
+						   // >>> ПЯТЬ МИГОВ: CAN-фрейм получен задачей для отправки <<<
+						      for(int i=0; i<10; i++) { HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); osDelay(50); }
+
+						      }
+					   break;
+					   }
+				   // Здесь будут другие case для ACTION_MOVE_ABSOLUTE и т.д.
+				   default:
+					   // Неизвестное действие
+					   break;
+					   }
+			}
+		// --- Измерение времени и отправка финального ответа ---
+		uint32_t final_time = __HAL_TIM_GET_COUNTER(&htim3) - start_time;
+		char response[128];
+		snprintf(response, sizeof(response),
+				"{\"status\":\"OK\", \"can_sent\":%s, \"total_time_us\":%lu}",
+				can_sent ? "true" : "false", (unsigned long)final_time);
+		Dispatcher_SendUsbResponse(response);
 		}
-}
-
-
-*/
-
 
 
 

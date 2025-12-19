@@ -13,18 +13,44 @@ BAUD_RATE = 115200
 
 # --- Пример сложной команды-рецепта (как мы обсуждали) ---
 COMPLEX_JOB_COMMAND = {
-  "command": "EXECUTE_JOB",
-  "job_name": "Standard Glucose Test",
-  "request_id": f"ui_job_{int(time.time())}",
-  "params": {
-    "steps": [
-      {
-        "action": "SET_PUMP_STATE",
-        "params": { "pump_id": 1, "state": "ON" }
-      }
-    ]
-  }
+    "command": "EXECUTE_JOB",
+    "request_id": "can_test_1",
+    "params": {
+        "steps": [
+            {
+                "action": "SET_PUMP_STATE",
+                "params": { "pump_id": 0, "state": 1 }
+            }
+        ]
+    }
 }
+
+COMPLEX_JOB_COMMAND1 = {
+    "command": "EXECUTE_JOB",
+    "request_id": "can_test_1",
+    "params": {
+        "steps": [
+            {
+                "action": "SET_PUMP_STATE",
+                "params": { "pump_id": 3, "state": 0}
+            }
+        ]
+    }
+}
+
+COMPLEX_JOB_COMMAND2= {
+    "command": "EXECUTE_JOB",
+    "request_id": "can_test_1",
+    "params": {
+        "steps": [
+            {
+                "action": "SET_PUMP_STATE",
+                "params": { "pump_id": 7, "state": 1}
+            }
+        ]
+    }
+}
+
 
 # --- Простая команда PING ---
 PING_COMMAND = {
@@ -90,6 +116,18 @@ if __name__ == "__main__":
     # 2. Отправляем сложную команду
     print("\n--- Отправляем сложную команду EXECUTE_JOB ---")
     send_json_command(ser, COMPLEX_JOB_COMMAND)
+    response = receive_json_response(ser)
+    if response:
+        print(f"-> Ответ на EXECUTE_JOB: {response}")
+
+    print("\n--- Отправляем сложную команду EXECUTE_JOB ---")
+    send_json_command(ser, COMPLEX_JOB_COMMAND1)
+    response = receive_json_response(ser)
+    if response:
+        print(f"-> Ответ на EXECUTE_JOB: {response}")
+
+    print("\n--- Отправляем сложную команду EXECUTE_JOB ---")
+    send_json_command(ser, COMPLEX_JOB_COMMAND2)
     response = receive_json_response(ser)
     if response:
         print(f"-> Ответ на EXECUTE_JOB: {response}")

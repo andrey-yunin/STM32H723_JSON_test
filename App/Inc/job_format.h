@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "app_config.h"
+#include "recipe_store.h"
 
 // --- Структуры для параметров каждого действия ---
 typedef struct {
