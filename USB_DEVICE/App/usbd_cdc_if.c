@@ -373,10 +373,10 @@ static int8_t CDC_TransmitCplt_HS(uint8_t *Buf, uint32_t *Len, uint8_t epnum)
   UNUSED(Len);
   UNUSED(epnum);
 
-//HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+
 
 // Передача по USB физически завершена! "Поднимаем" семафор.
-//osSemaphoreRelease(usb_tx_semHandle);
+osSemaphoreRelease(usb_tx_semHandle);
 
 
   /* USER CODE END 14 */

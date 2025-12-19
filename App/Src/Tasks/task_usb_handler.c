@@ -51,10 +51,20 @@ void app_start_task_usb_handler(void *argument)
 				}
 
 			// 5. Отправляем данные по USB
+
+			/*
 			while (CDC_Transmit_HS((uint8_t *)tx_buffer, len) == USBD_BUSY)
 			{
 				osDelay(100);
 			}
+			*/
+
+			// Ждем, пока предыдущая передача завершится (семафор будет отпущен в CDC_TransmitCplt_HS)
+			osSemaphoreAcquire(usb_tx_semHandle, osWaitForever);
+
+			// Теперь USB свободен, инициируем новую передачу
+			CDC_Transmit_HS((uint8_t *)tx_buffer, len);
+
 	      }
     }
 }
